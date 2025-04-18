@@ -1,29 +1,33 @@
 
       <!DOCTYPE html>
       <html>
+        <head>
+          window.onload=()=>{
+            function send(type, ...args) {
+              parent.postMessage({ type, args }, '*');
+            }
+  
+            // 拦截 console的输出，重定向到页面
+            ['log', 'error', 'warn', 'info'].forEach(method => {
+              const original = console[method];
+              console[method] = (...args) => {
+                send(method, ...args);
+                original.apply(console, args);
+              };
+            });
+  
+            // 监听来自父窗口的消息,执行代码
+            window.addEventListener('message', e => {
+              try {
+                eval(e.data.code);
+              } catch (err) {
+                console.error(err);
+              }
+            });  
+          };
+        </head>
 			<body>
 				 <script>
-          function send(type, ...args) {
-            parent.postMessage({ type, args }, '*');
-          }
-
-					// 拦截 console的输出，重定向到页面
-          ['log', 'error', 'warn', 'info'].forEach(method => {
-            const original = console[method];
-            console[method] = (...args) => {
-              send(method, ...args);
-              original.apply(console, args);
-            };
-          });
-
-					// 监听来自父窗口的消息,执行代码
-          window.addEventListener('message', e => {
-            try {
-              eval(e.data.code);
-            } catch (err) {
-              console.error(err);
-            }
-          });
       </script>
       </body>
 			</html>
