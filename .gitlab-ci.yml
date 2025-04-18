@@ -2,5 +2,7 @@ pages:
   artifacts:
     paths:
       - public
-  only:
-    - main  # 或 master，根据你的主分支名称
+  script:
+    - echo "The site will be deployed to $CI_PAGES_URL"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
