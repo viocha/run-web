@@ -2,7 +2,6 @@
       <!DOCTYPE html>
       <html>
         <head>
-          window.onload=()=>{
             function send(type, ...args) {
               parent.postMessage({ type, args }, '*');
             }
@@ -24,7 +23,6 @@
                 console.error(err);
               }
             });  
-          };
         </head>
 			<body>
 				 <script>
