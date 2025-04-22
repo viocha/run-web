@@ -101,12 +101,13 @@
   #console-container.collapsed {
     /* 调整为按钮高度 */
     height : 16px !important;
+    width  : 100% !important;
   }
 
   #editor-container.collapsed {
     /* 宽屏时，调整为按钮宽度 */
     width  : 16px !important;
-    height : 100%;
+    height : 100% !important;
   }
 
   /* ================== 窄屏布局：垂直排列 ================== */
@@ -200,12 +201,20 @@
     display  : flex;
     position : absolute;
     top      : 0;
-    right    : 0;
     z-index  : 999999;
+  }
+
+  .button-container.left {
+    left : 0;
+  }
+
+  .button-container.right {
+    right : 0;
   }
 
   .button {
     display          : flex;
+    align-items      : center; /* 复选框和文本，垂直居中 */
     margin           : 0 0.2em;
     background-color : #5f657b;
     border-radius    : 4px;
@@ -422,11 +431,6 @@
 <div id="content">
   <!-- 编辑器面板 -->
   <div id="editor-container" class="panel">
-    <div class="button-container">
-      <label class="button">
-        <span class="text" id="copy-btn">复制</span>
-      </label>
-    </div>
     <button class="toggleBtn">编辑器</button>
     <div id="editor"></div>
   </div>
@@ -443,7 +447,7 @@
     <div class="console v-splitter"></div>
     <!-- 控制台面板 -->
     <div id="console-container" class="panel">
-      <div class="button-container">
+      <div class="button-container left">
         <!-- 切换语言开关：html/js -->
         <label class="button">
           <input type="checkbox" name="js-mode" id="js-mode">
@@ -453,6 +457,11 @@
         <label class="button">
           <input type="checkbox" name="auto-run" id="auto-run" checked>
           <span class="text">自动运行</span>
+        </label>
+      </div>
+      <div class="button-container right">
+        <label class="button">
+          <span class="text" id="copy-btn">复制代码</span>
         </label>
       </div>
       <!-- 控制台折叠/展开按钮 -->
@@ -529,14 +538,14 @@
 <p>调整浏览器窗口大小查看响应式布局。</p>
 <p>点击下方按钮收缩/展开控制台。</p>
 <script type="module">
-import $ from 'https://cdn.jsdelivr.net/npm/jquery@3/+esm'
+import $ from 'https://cdn.jsdelivr.net/npm/jquery@3/+esm';
 
 console.log($('body').length);
 
-console.log("Hello from iframe!");
-console.warn("This is a warning");
-console.error("Something went wrong");
-console.info("Just some info");
+console.log('Hello from iframe!');
+console.warn('This is a warning');
+console.error('Something went wrong');
+console.info('Just some info');
 
 function hello(){
   console.log('hello');
@@ -603,13 +612,12 @@ throw  'abc';
     const e = event.target;
     navigator.clipboard.writeText(code).then(()=>{
       $(e).text('已复制');
-      $(e).css('pointer-events', 'none');
     }).catch((err)=>{
       console.error('复制失败：', err);
       $(e).text('复制失败');
     }).finally(()=>{
       setTimeout(()=>{
-        $(e).text('复制').css('pointer-events', '');
+        $(e).text('复制代码');
       }, 1000);
     });
   });
