@@ -1,33 +1,849 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
 
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <script>
-            function send(type, ...args) {
-              parent.postMessage({ type, args }, '*');
-            }
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>monaco前端编辑器与预览</title>
+<!-- 编辑器样式表，不引入无法显示折叠按钮 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/editor/editor.main.min.css">
+<style>
+  html,
+  body {
+    margin   : 0;
+    padding  : 0;
+    overflow : hidden;
+  }
+
+  #content {
+    display : flex;
+    /* 100% 宽度 */
+    width   : 100vw;
+    /* 100% 高度 */
+    height  : 100vh;
+  }
+
+  /* ================ 宽屏布局：水平排列 =================== */
+  /* 宽屏时高度无法更改 */
+  @media (min-width : 701px) {
+    #editor-container {
+      height : 100% !important;
+    }
+  }
+
+  #editor-container {
+    display        : flex;
+    flex-direction : row; /*  宽屏折叠按钮在左侧  */
+    flex           : none;
+    width          : 60%; /* 宽屏时的宽度比例 */
+    overflow       : hidden;
+    transition     : height 0.3s ease, width 0.3s ease;
+  }
+
+  #editor-container .toggleBtn {
+    height : 100%;
+    width  : 16px;
+  }
+
+  #editor {
+    flex : 1;
+  }
+
+  /* 宽屏布局下右侧面板的容器 */
+  #right-panel {
+    /* 占据剩余空间 */
+    flex           : 1;
+    display        : flex;
+    flex-direction : column;
+    /* 允许收缩 */
+    transition     : height 0.3s ease, width 0.3s ease;
+  }
+
+  /* preview和console-container永远是上下布局 */
+  #preview {
+    /* 在右侧面板中伸缩以填充空间 */
+    flex   : 1;
+    border : 1px solid grey;
+  }
+
+  /* ================= 折叠按钮 ===================== */
+  /*  折叠按钮 */
+  .toggleBtn {
+    text-align       : center;
+    padding          : 0;
+    width            : 100%;
+    flex             : none;
+    font-size        : 12px;
+    height           : 16px;
+    border           : none;
+    background-color : #333;
+    color            : #fff;
+    cursor           : pointer;
+    /* 禁止文本选择 */
+    user-select      : none;
+  }
+
+  .toggleBtn:hover {
+    /* 鼠标悬停时的背景色 */
+    background-color : #444;
+  }
+
+  /* 控制台折叠时的样式 */
+  #console-container.collapsed {
+    /* 调整为按钮高度 */
+    height : 16px !important;
+  }
+
+  #editor-container.collapsed {
+    /* 宽屏时，调整为按钮宽度 */
+    width  : 16px !important;
+    height : 100%;
+  }
+
+  /* ================== 窄屏布局：垂直排列 ================== */
+  @media (max-width : 700px) {
+    #content {
+      flex-direction : column;
+    }
+
+    #editor-container {
+      flex-direction : column;
+      width          : 100% !important; /* 窄屏时，宽度无法更改 */
+      height         : 40%;
+    }
+
+    #editor-container .toggleBtn {
+      width  : 100%;
+      height : 16px;
+    }
+
+    #editor-container.collapsed {
+      width  : 100% !important;
+      height : 16px !important;
+    }
+    #editor-container.collapsed > .toggleBtn {
+      width  : 100% !important;
+      height : 16px !important;
+    }
+  }
+
+  /* ================= 控制台 ===================== */
+
+  #console-container {
+    flex             : none;
+    display          : flex;
+    /* 隐藏溢出 */
+    overflow-y       : hidden;
+    flex-direction   : column;
+    /* 容器背景色 */
+    background-color : #333;
+    /* 折叠/展开的平滑过渡效果 */
+    transition       : height 0.3s ease, width 0.3s ease;
+  }
+
+  #console-container:not(.collapsed) {
+    height : 20%;
+  }
+
+  #console {
+    /* 在控制台容器中占据剩余空间 */
+    flex             : 1;
+    /* 分隔线 */
+    border-top       : 1px solid #555;
+    overflow-y       : auto;
+    background-color : #1e1e1e;
+    color            : #d4d4d4;
+    padding          : 10px;
+    font-family      : monospace;
+    font-size        : 12px;
+    line-height      : 1.2;
+  }
+
+  .message-line {
+    border-bottom : 1px solid #444;
+    padding       : 4px 0;
+  }
+
+  .message.error {
+    color : #ff4c4c;
+  }
+
+  .message.warn {
+    color : #ffc107;
+  }
+
+  .message.info {
+    color : #00bcd4;
+  }
+
+  .message.log {
+    color : #d4d4d4;
+  }
+
+  /* ================= 悬浮按钮组 ====================== */
+  :has(> #button-container) {
+    position : relative;
+  }
+
+  #button-container {
+    flex     : none;
+    height   : 16px;
+    display  : flex;
+    position : absolute;
+    top      : 0;
+    right    : 0;
+    z-index  : 999999;
+  }
+
+  .switch {
+    display          : flex;
+    margin           : 0 0.2em;
+    background-color : #5f657b;
+    border-radius    : 4px;
+    padding          : 0.1em 0.3em;
+    font-size        : 12px;
+    user-select      : none;
+  }
+
+  .switch:not(:hover) {
+    opacity : 0.8;
+  }
+
+  .switch > input {
+    margin : 0 0.1em 0 0;
+    cursor : pointer;
+  }
+
+  .switch > span {
+    cursor : pointer;
+    color  : #fff;
+  }
+
+  /* ================== 分隔条样式 ==================== */
+  /* 接触所有面板的大小限制 */
+  :is(.v-splitter,.h-splitter) ~ .panel,
+  .panel:has(~ :is(.v-splitter,.h-splitter)) {
+    min-height : 0;
+    min-width  : 0;
+  }
+
+  :is(.v-splitter,.h-splitter) {
+    background-color : #444;
+    user-select      : none; /* 禁止选中文本 */
+    flex-shrink      : 0; /* 禁止滚动条收缩 */
+  }
+
+  :is(.v-splitter,.h-splitter):hover {
+    background-color : #777;
+  }
+
+  .v-splitter {
+    height : 5px;
+    width  : 100%;
+    cursor : ns-resize;
+  }
+
+  body:has(.v-splitter.dragging) {
+    cursor : ns-resize;
+  }
+
+  .h-splitter {
+    width  : 5px;
+    height : 100%;
+    cursor : ew-resize;
+  }
+
+  body:has(.h-splitter.dragging) {
+    cursor : ew-resize;
+  }
+
+  /* 拖拽过程中，所有相邻元素无法触发点击事件 */
+  .dragging ~ *, :has(~ .dragging) {
+    user-select    : none !important;
+    pointer-events : none !important;
+    transition     : none !important;
+  }
+
+  /* 只有在JS双面板布局时，才启用右侧栏拖动条 */
+  .right-panel.h-splitter, .right-panel.v-splitter {
+    display : none;
+  }
+
+  /* 选择要出现的分隔条 */
+  .editor.h-splitter, .console.v-splitter {
+    display : block;
+  }
+
+  .editor.v-splitter {
+    display : none;
+  }
+
+  @media (max-width : 700px) {
+    .editor.v-splitter, .console.v-splitter {
+      display : block;
+    }
+    .editor.h-splitter {
+      display : none;
+    }
+  }
+
+  /* ====================================== js双面板布局 ================================= */
+  /* =========== 宽屏布局：水平排列 ============= */
+
+  body:has(#js-mode:checked) {
+    /* 只能变换right-panel的宽度，editor自动伸缩 */
+    #editor-container {
+      flex : 1;
+    }
+
+    /* 无法折叠编辑器，只能折叠控制台 */
+    #editor-container .toggleBtn {
+      display : none;
+    }
+
+    /* 右栏禁止自动伸缩 */
+    #right-panel {
+      flex     : none !important;
+      position : relative;
+    }
+
+    /* 通过right-panel调节尺寸，console-container继承它的尺寸 */
+    #console-container {
+      width    : 100% !important; /* 防止折叠时产生动画，与right-panel不同步 */
+      height   : 100% !important;
+      /* 固定在底部，然后向上增加高度， */
+      position : absolute;
+      bottom   : 0;
+    }
+
+    @media (min-width : 701px) {
+      /* 固定面板高度 */
+      #editor-container, #right-panel {
+        height : 100% !important;
+      }
+
+      #right-panel {
+        width : 40%;
+      }
+
+      /* 折叠console时，收缩right-panel */
+      #right-panel:has(.collapsed) {
+        width : 16px !important; /* 需要覆盖内联样式 */
+      }
+
+      /* 控制台为左右布局，为了让按钮在左侧 */
+      #console-container {
+        flex-direction : row;
+      }
+
+      /* 折叠按钮附在左侧 */
+      #console-container .toggleBtn {
+        height : 100%;
+        width  : 16px;
+      }
+
+      /* 只能拖动right-panel的水平分隔条 */
+      .editor.h-splitter, .editor.v-splitter, .console.v-splitter, .right-panel.v-splitter {
+        display : none;
+      }
+      .right-panel.h-splitter {
+        display : block;
+      }
+    }
+    /* ============ 窄屏布局：垂直排列 =========== */
+    @media (max-width : 700px) {
+      /* 固定宽度撑满 */
+      #editor-container, #right-panel {
+        width : 100% !important;
+      }
+
+      #editor-container {
+        flex : 1;
+      }
+
+      /* 右侧面板，垂直伸缩 */
+      #right-panel {
+        height : 25%;
+      }
+
+      /* 控制台内部垂直排列*/
+      #console-container {
+        flex-direction : column;
+      }
+      /* 控制台折叠按钮在顶部 */
+      #console-container .toggleBtn {
+        height : 16px;
+        width  : 100%;
+      }
+      /* 折叠之后的样式 */
+      #right-panel:has(.collapsed) {
+        height : 16px !important; /* 需要覆盖内联样式 */
+      }
+
+      /* 只能拖动right-panel的垂直分隔条 */
+      .editor.h-splitter, .editor.v-splitter, .console.v-splitter {
+        display : none;
+      }
+      .right-panel.v-splitter {
+        display : block;
+      }
+    }
+  }
+
+  /* ================== 其他 ===================== */
+  iframe {
+    width  : 100%;
+    height : 100%;
+    border : none;
+  }
+
+  /* 去除编辑器中的缝隙，因为长度单位为整数，出现了小数长度的缝隙 */
+  .overflow-guard, .monaco-editor, .monaco-scrollable-element {
+    height : 100% !important;
+  }
+
+  .overflow-guard > .margin {
+    padding-top : 1px !important;
+  }
+</style>
+</head>
+
+<body>
+
+<div id="content">
+  <!-- 编辑器面板 -->
+  <div id="editor-container" class="panel">
+    <button class="toggleBtn">编辑器</button>
+    <div id="editor"></div>
+  </div>
+  <div class="editor h-splitter"></div>
+  <div class="editor v-splitter"></div>
+  <div class="right-panel h-splitter"></div>
+  <div class="right-panel v-splitter"></div>
+  <!-- 右侧面板 -->
+  <div id="right-panel" class="panel">
+    <!-- 预览面板 -->
+    <div id="preview" class="panel">
+      <iframe id="sandboxFrame"></iframe>
+    </div>
+    <div class="console v-splitter"></div>
+    <!-- 控制台面板 -->
+    <div id="console-container" class="panel">
+      <div id="button-container">
+        <!-- 切换语言开关：html/js -->
+        <label class="switch">
+          <input type="checkbox" name="js-mode" id="js-mode">
+          <span>JS</span>
+        </label>
+        <!-- 自动运行开关 -->
+        <label class="switch">
+          <input type="checkbox" name="auto-run" id="auto-run" checked>
+          <span>自动运行</span>
+        </label>
+      </div>
+      <!-- 控制台折叠/展开按钮 -->
+      <button class="toggleBtn">控制台</button>
+      <!-- 控制台输出区域 -->
+      <div id="console"></div>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
+<script type="module">
+  async function loadMonaco(){
+    require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs' } });
+    return new Promise((resolve, reject)=>{
+      require(['vs/editor/editor.main'], ()=>{
+        resolve(window.monaco);
+      }, reject);
+    });
+  }
+
+  import $ from 'https://cdn.jsdelivr.net/npm/jquery@3/+esm';
+  const monaco = await loadMonaco();
+  const iframe = $('#sandboxFrame')[0];
+  const $consoleDiv = $('#console');
+  // 自动运行开关
+  const autoRun = $('#auto-run')[0];
+  // HTML模式开关
+  const jsMode = $('#js-mode')[0];
+
+  //  查询url的参数，检查初始折叠状态
+  const params = new URL(location.href).searchParams;
+  if (params.has('no-editor')){
+    const e=$('#editor-container')[0];
+    $(e).css('transition','none').addClass('collapsed');
+    setTimeout(()=>$(e).css('transition',''));  //  确保DOM修改完成
+  }
+  if (params.has('no-console')){
+    const e=$('#console-container')[0];
+    $(e).css('transition','none').addClass('collapsed');
+    setTimeout(()=>$(e).css('transition',''));
+  }
+  // 控制台折叠/展开按钮点击事件
+  $('.toggleBtn').on('click', (e)=>{
+    $(e.target).parent().toggleClass('collapsed');
+  });
+
+  // 三栏布局的拖动条，调整大小事件
+  addResizeListener('.editor.h-splitter', '#editor-container', 'h');
+  addResizeListener('.editor.v-splitter', '#editor-container', 'v', {deltaSign:-1});
+  addResizeListener('.console.v-splitter', '#console-container', 'v');
+
+  // 双栏布局的拖动条，调整大小事件
+  addResizeListener('.right-panel.h-splitter', '#right-panel', 'h', {deltaSign:-1});
+  addResizeListener('.right-panel.v-splitter', '#right-panel', 'v');
+
+  // 向控制台追加内容的函数
+  window.appendToConsole = function(type, args){
+    const $wrapper = $('<div class="message-line"></div>');
+    const message = $(`<div class="message ${type}"></div>`)[0];
+    message.textContent = args.map(arg=>{
+      try {
+        return typeof arg==='object'? JSON.stringify(arg, null, 2): String(arg);
+      } catch{
+        return '[Object]';
+      }
+    }).join(' ');
+    $consoleDiv.append($wrapper.append(message));
+    $consoleDiv.scrollTop($consoleDiv[0].scrollHeight);
+  };
+
+  // 初始代码
+  let code = `
+<h1>你好，世界！</h1>
+<p>调整浏览器窗口大小查看响应式布局。</p>
+<p>点击下方按钮收缩/展开控制台。</p>
+<script type="module">
+import $ from 'https://cdn.jsdelivr.net/npm/jquery@3/+esm'
+
+console.log($('body').length);
+
+console.log("Hello from iframe!");
+console.warn("This is a warning");
+console.error("Something went wrong");
+console.info("Just some info");
+
+function hello(){
+  console.log('hello');
+}
+hello();
+
+Promise.reject(123);
+throw  'abc';
+<\/script>`.trim();
   
-            // 拦截 console的输出，重定向到页面
-            ['log', 'error', 'warn', 'info'].forEach(method => {
-              const original = console[method];
-              console[method] = (...args) => {
-                send(method, ...args);
-                original.apply(console, args);
-              };
+ let lang='html';
+  
+ if(params.has('code')){
+    code= decodeURIComponent(params.get('code'));
+    lang= params.get('lang') || 'html';
+  }
+
+
+  // 创建Monaco编辑器实例
+  const editor = monaco.editor.create(document.getElementById('editor'), {
+    language: lang,
+    value: code,
+    theme:'vs-dark',
+    automaticLayout:true,
+    fontSize:12,
+    lineHeight:1.5,
+    tabSize:2,
+    minimap:{
+      autohide:true,
+      maxColumn:80,
+    },
+    padding:{
+      top:10,
+    },
+    lineNumbersMinChars:2,
+    scrollbar:{
+      verticalScrollbarSize:10,
+      horizontalScrollbarSize:7,
+    },
+  });
+  // 增强编辑器功能
+  enhanceEditor(editor);
+
+  // 监听jsMode，然后更改编辑器语言
+  jsMode.addEventListener('change', (e)=>{
+    if (e.target.checked){
+      const model = editor.getModel();
+      monaco.editor.setModelLanguage(model, 'javascript');
+    }else {
+      const model = editor.getModel();
+      monaco.editor.setModelLanguage(model, 'html');
+    }
+    runCode(editor.getValue());
+  });
+
+  // 自动运行开关
+  autoRun.addEventListener('change', (e)=>{
+    if (e.target.checked){
+      runCode(editor.getValue());
+    }
+  });
+
+  // 运行代码的函数
+  function runCode(code){
+    // 清空控制台
+    $consoleDiv.find('.message-line').remove();
+    iframe.src = genIframeUrl(code);
+  }
+
+  // 初始运行代码
+  runCode(editor.getValue());
+
+  // 编辑器内容变化时的处理
+  let timeout;
+  editor.onDidChangeModelContent(()=>{
+    if (!autoRun.checked){
+      return;
+    }
+    clearTimeout(timeout);
+    timeout = setTimeout(()=>{
+      runCode(editor.getValue());
+    }, 200); // 稍微增加的延迟
+  });
+
+  // 根据语言类型生成不同的页面url
+  function genIframeUrl(code){
+    if (jsMode.checked){
+      return genUrl(code, '');
+    } else {
+      return genUrl('', code);
+    }
+
+    function genUrl(js, html){
+      const jsUrl = URL.createObjectURL(new Blob([js], {type:'text/javascript'}));
+      const iframeHTML = `
+        <html lang="zh-CN">
+          <head>
+            <meta charset="UTF-8"/>
+            <style> html:has(> body > html), body:has(> html) { display:contents } </style>
+            <script>
+                const originalConsole = console;
+                window.console = {
+                  log: function(...args) {
+                    parent.appendToConsole('log', args);
+                    originalConsole.log.apply(originalConsole, args);
+                  },
+                  error: function(...args) {
+                    parent.appendToConsole('error', args);
+                    originalConsole.error.apply(originalConsole, args);
+                  },
+                  warn: function(...args) {
+                    parent.appendToConsole('warn', args);
+                    originalConsole.warn.apply(originalConsole, args);
+                  },
+                  info: function(...args) {
+                    parent.appendToConsole('info', args);
+                    originalConsole.info.apply(originalConsole, args);
+                  }
+                };
+                window.onerror = function(message, source, lineno, colno, error) {
+                  parent.appendToConsole('error', ['Uncaught Error:', message]);
+                  originalConsole.error(error);
+                };
+                window.onunhandledrejection = function(event) {
+                  parent.appendToConsole('error', ['Unhandled Promise Rejection:', event.reason]);
+                  originalConsole.warn(event.reason);
+                };
+            <\/script>
+            <script type="module" src="${jsUrl}"><\/script>
+          </head>
+          <body>
+            ${html}
+          </body>
+        </html>
+      `;
+      return URL.createObjectURL(new Blob([iframeHTML], {
+        type:'text/html',
+      }));
+    }
+  }
+
+  // 增强编辑器功能
+  function enhanceEditor(editor){
+    // Tab键执行缩进
+    editor.addCommand(monaco.KeyCode.Tab, ()=>{
+      editor.getAction('editor.action.indentLines').run();
+    });
+    // 折叠增强
+    monaco.languages.registerFoldingRangeProvider('javascript', {
+      provideFoldingRanges:function(model, context, token){
+        const lines = model.getLineCount();
+        const ranges = [];
+        const stack = [];
+        const pairs = {
+          '{':'}',
+          '(':')',
+          '[':']',
+        };
+        const openers = Object.keys(pairs);
+        const closers = Object.values(pairs);
+        const commentStart = /\/\*/;
+        const commentEnd = /\*\//;
+        // 单行注释块
+        let inLineCommentBlock = false;
+        let commentStartLine = null;
+        for (let line = 1; line<=lines+1; line++){
+          const text = (line<=lines? model.getLineContent(line): '').trim();
+          // 多行注释
+          if (line<=lines && commentStart.test(text)){
+            stack.push({
+              type:'comment',
+              line,
             });
-  
-            // 监听来自父窗口的消息,执行代码
-            window.addEventListener('message', e => {
-              try {
-                eval(e.data.code);
-              } catch (err) {
-                console.error(err);
+            continue;
+          }
+          if (line<=lines && commentEnd.test(text)){
+            const start = stack.pop();
+            if (start?.type==='comment'){
+              ranges.push({
+                start:start.line,
+                end:line,
+                kind:monaco.languages.FoldingRangeKind.Comment,
+              });
+            }
+            continue;
+          }
+          // 单行注释折叠
+          const isLineComment = text.startsWith('//');
+          if (isLineComment){
+            if (!inLineCommentBlock){
+              inLineCommentBlock = true;
+              commentStartLine = line;
+            }
+          } else {
+            if (inLineCommentBlock && commentStartLine!==null && line-commentStartLine>1){
+              ranges.push({
+                start:commentStartLine,
+                end:line-1,
+                kind:monaco.languages.FoldingRangeKind.Comment,
+              });
+            }
+            inLineCommentBlock = false;
+            commentStartLine = null;
+          }
+          // 通用符号配对处理
+          for (const ch of openers){
+            if (text.includes(ch)){
+              stack.push({
+                type:'symbol',
+                symbol:ch,
+                line,
+              });
+            }
+          }
+          for (const ch of closers){
+            const match = Object.entries(pairs).find(([open, close])=>close===ch);
+            if (match && text.includes(ch)){
+              const openerIndex = stack.findLastIndex((s)=>s.type==='symbol' && pairs[s.symbol]===ch);
+              if (openerIndex!== -1){
+                const start = stack.splice(openerIndex, 1)[0];
+                if (line>start.line){
+                  ranges.push({
+                    start:start.line,
+                    end:line,
+                    kind:monaco.languages.FoldingRangeKind.Region,
+                  });
+                }
               }
-            });  
-          </script>
-        </head>
-			<body>
-		
-      </body>
-			</html>
-    
+            }
+          }
+        }
+        return ranges;
+      },
+    });
+  }
+
+  function addResizeListener(splitter, panel, direction, options = {}){
+    const {deltaSign = 1, minSize = 16} = options;
+    splitter = $(splitter)[0];
+    panel = $(panel)[0];
+
+    let parentSize;
+    let startSize;
+
+    addDragListener(splitter, {
+      onStart:function(){
+        $(splitter).addClass('dragging');
+        if (direction==='h'){
+          startSize = panel.offsetWidth;
+          parentSize = splitter.parentElement.offsetWidth;
+        } else {
+          startSize = panel.offsetHeight;
+          parentSize = splitter.parentElement.offsetHeight;
+        }
+      },
+      onMove:function(deltaX, deltaY){
+        const newSize = startSize+deltaSign*(direction==='h'? deltaX: deltaY);
+        if (newSize<=minSize || newSize>=parentSize-minSize){
+          return;
+        }
+        if (direction==='h'){
+          panel.style.width = newSize/parentSize*100+'%';
+        } else {
+          panel.style.height = newSize/parentSize*100+'%';
+        }
+        // 移除所有相邻元素的collapsed类，防止不生效
+        $(splitter).siblings().removeClass('collapsed');
+      },
+      onEnd:function(){
+        $(splitter).removeClass('dragging');
+      },
+    }, {
+      stopOnLeave:false, // todo
+    });
+  }
+
+  function addDragListener(selector, callbacks = {}, options = {}){
+    const $target = $(selector);
+    if (!$target.length) return;
+
+    const {onStart = ()=>{}, onMove = ()=>{}, onEnd = ()=>{}} = callbacks;
+    const {stopOnLeave = true} = options;
+
+    let dragging = false; // 可以表示是否正在拖动
+    let startX = 0;
+    let startY = 0;
+
+    $target.on('mousedown', (event)=>{
+      if (dragging){
+        return;
+      }
+      dragging = true;
+      startX = event.clientX;
+      startY = event.clientY;
+      onStart(event);
+    });
+
+    $(document).on('mousemove', (event)=>{
+      if (!dragging){
+        return;
+      }
+      const deltaX = event.clientX-startX;
+      const deltaY = startY-event.clientY; // y轴正常是反向的
+      onMove(deltaX, deltaY, event);
+    });
+
+    $(document).on('mouseup', stopDrag);
+    if (stopOnLeave){
+      $target.on('mouseleave', stopDrag);
+    }
+
+    function stopDrag(event){
+      if (!dragging){
+        return;
+      }
+      dragging = false;
+      onEnd(event);
+    }
+  }
+
+</script>
+</body>
+
+</html>
