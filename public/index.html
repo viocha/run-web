@@ -29,6 +29,15 @@
     #editor-container {
       height : 100% !important;
     }
+    #editor-container.collapsed {
+      .button-container {
+        height : max-content !important;
+
+        .button {
+          margin : 0.2em 0 !important;
+        }
+      }
+    }
   }
 
   #editor-container {
@@ -181,11 +190,11 @@
   }
 
   /* ================= 悬浮按钮组 ====================== */
-  :has(> #button-container) {
+  :has(> .button-container) {
     position : relative;
   }
 
-  #button-container {
+  .button-container {
     flex     : none;
     height   : 16px;
     display  : flex;
@@ -195,7 +204,7 @@
     z-index  : 999999;
   }
 
-  .switch {
+  .button {
     display          : flex;
     margin           : 0 0.2em;
     background-color : #5f657b;
@@ -205,16 +214,16 @@
     user-select      : none;
   }
 
-  .switch:not(:hover) {
+  .button:not(:hover) {
     opacity : 0.8;
   }
 
-  .switch > input {
+  .button > input {
     margin : 0 0.1em 0 0;
     cursor : pointer;
   }
 
-  .switch > span {
+  .button > .text {
     cursor : pointer;
     color  : #fff;
   }
@@ -413,6 +422,11 @@
 <div id="content">
   <!-- 编辑器面板 -->
   <div id="editor-container" class="panel">
+    <div class="button-container">
+      <label class="button">
+        <span class="text" id="copy-btn">复制</span>
+      </label>
+    </div>
     <button class="toggleBtn">编辑器</button>
     <div id="editor"></div>
   </div>
@@ -429,16 +443,16 @@
     <div class="console v-splitter"></div>
     <!-- 控制台面板 -->
     <div id="console-container" class="panel">
-      <div id="button-container">
+      <div class="button-container">
         <!-- 切换语言开关：html/js -->
-        <label class="switch">
+        <label class="button">
           <input type="checkbox" name="js-mode" id="js-mode">
-          <span>JS</span>
+          <span class="text">JS</span>
         </label>
         <!-- 自动运行开关 -->
-        <label class="switch">
+        <label class="button">
           <input type="checkbox" name="auto-run" id="auto-run" checked>
-          <span>自动运行</span>
+          <span class="text">自动运行</span>
         </label>
       </div>
       <!-- 控制台折叠/展开按钮 -->
@@ -451,7 +465,7 @@
 <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
 <script type="module">
   async function loadMonaco(){
-    require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs' } });
+    require.config({paths:{'vs':'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs'}});
     return new Promise((resolve, reject)=>{
       require(['vs/editor/editor.main'], ()=>{
         resolve(window.monaco);
@@ -471,14 +485,14 @@
   //  查询url的参数，检查初始折叠状态
   const params = new URL(location.href).searchParams;
   if (params.has('no-editor')){
-    const e=$('#editor-container')[0];
-    $(e).css('transition','none').addClass('collapsed');
-    setTimeout(()=>$(e).css('transition',''));  //  确保DOM修改完成
+    const e = $('#editor-container')[0];
+    $(e).css('transition', 'none').addClass('collapsed');
+    setTimeout(()=>$(e).css('transition', ''));  //  确保DOM修改完成
   }
   if (params.has('no-console')){
-    const e=$('#console-container')[0];
-    $(e).css('transition','none').addClass('collapsed');
-    setTimeout(()=>$(e).css('transition',''));
+    const e = $('#console-container')[0];
+    $(e).css('transition', 'none').addClass('collapsed');
+    setTimeout(()=>$(e).css('transition', ''));
   }
   // 控制台折叠/展开按钮点击事件
   $('.toggleBtn').on('click', (e)=>{
@@ -532,19 +546,24 @@ hello();
 Promise.reject(123);
 throw  'abc';
 <\/script>`.trim();
-  
- let lang='html';
-  
- if(params.has('code')){
-    code= decodeURIComponent(params.get('code'));
-    lang= params.get('lang') || 'html';
-  }
 
+  let lang = 'html';
+
+  if (params.has('code')){
+    code = decodeURIComponent(params.get('code'));
+    lang = params.get('lang') || 'html';
+  }
+  if (lang==='js'){ // 符合monaco编辑器的参数格式
+    lang = 'javascript';
+  }
+  if (lang==='javascript'){
+    jsMode.checked = true; // 更换布局
+  }
 
   // 创建Monaco编辑器实例
   const editor = monaco.editor.create(document.getElementById('editor'), {
-    language: lang,
-    value: code,
+    language:lang,
+    value:code,
     theme:'vs-dark',
     automaticLayout:true,
     fontSize:12,
@@ -571,11 +590,28 @@ throw  'abc';
     if (e.target.checked){
       const model = editor.getModel();
       monaco.editor.setModelLanguage(model, 'javascript');
-    }else {
+    } else {
       const model = editor.getModel();
       monaco.editor.setModelLanguage(model, 'html');
     }
     runCode(editor.getValue());
+  });
+
+  // 复制按钮
+  $('#copy-btn').on('click', function(event){
+    const code = editor.getValue();
+    const e = event.target;
+    navigator.clipboard.writeText(code).then(()=>{
+      $(e).text('已复制');
+      $(e).css('pointer-events', 'none');
+    }).catch((err)=>{
+      console.error('复制失败：', err);
+      $(e).text('复制失败');
+    }).finally(()=>{
+      setTimeout(()=>{
+        $(e).text('复制').css('pointer-events', '');
+      }, 1000);
+    });
   });
 
   // 自动运行开关
