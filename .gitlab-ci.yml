@@ -1,7 +1,4 @@
 pages:
-  artifacts:
-    paths:
-      - public
   script:
     - echo "The site will be deployed to $CI_PAGES_URL"
   rules:
