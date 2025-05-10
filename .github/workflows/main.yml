@@ -1,0 +1,36 @@
+name: Sync all branches and tags
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["**"]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: sync
+      cancel-in-progress: true
+
+    steps:
+    - name: Check if TOKEN is set
+      run: |
+        if [[ -z "${{ secrets.TOKEN }}" ]]; then
+          echo "Error: secrets.TOKEN is not set. Exiting."
+          exit 1
+        fi
+        
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Push Repository
+      env:
+        GIT_PROVIDER: gitlab.com
+        OWNER: viocha
+      run: |
+        REPO=$(echo $GITHUB_REPOSITORY | cut -d'/' -f2)
+        git remote add gitlab https://oauth2:${{secrets.TOKEN}}@${GIT_PROVIDER}/${OWNER}/${REPO}.git
+        git push --all gitlab || { echo "Failed to push branches"; exit 1; }
+        git push --tags gitlab || { echo "Failed to push tags"; exit 1; }
