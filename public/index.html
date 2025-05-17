@@ -3,10 +3,10 @@
 
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>monaco前端编辑器与预览</title>
 <!-- 编辑器样式表，不引入无法显示折叠按钮 -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/editor/editor.main.min.css">
+<link href="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/editor/editor.main.min.css" rel="stylesheet">
 <style>
   html,
   body {
@@ -18,9 +18,9 @@
   #content {
     display : flex;
     /* 100% 宽度 */
-    width   : 100vw;
-    /* 100% 高度 */
     height  : 100vh;
+    /* 100% 高度 */
+    width   : 100vw;
   }
 
   /* ================ 宽屏布局：水平排列 =================== */
@@ -43,8 +43,8 @@
   #editor-container {
     display        : flex;
     flex-direction : row; /*  宽屏折叠按钮在左侧  */
-    flex           : none;
     width          : 60%; /* 宽屏时的宽度比例 */
+    flex           : none;
     overflow       : hidden;
     transition     : height 0.3s ease, width 0.3s ease;
   }
@@ -61,9 +61,9 @@
   /* 宽屏布局下右侧面板的容器 */
   #right-panel {
     /* 占据剩余空间 */
-    flex           : 1;
     display        : flex;
     flex-direction : column;
+    flex           : 1;
     /* 允许收缩 */
     transition     : height 0.3s ease, width 0.3s ease;
   }
@@ -78,18 +78,18 @@
   /* ================= 折叠按钮 ===================== */
   /*  折叠按钮 */
   .toggleBtn {
-    text-align       : center;
-    padding          : 0;
-    width            : 100%;
-    flex             : none;
-    font-size        : 12px;
     height           : 16px;
-    border           : none;
-    background-color : #333;
+    width            : 100%;
+    font-size        : 12px;
+    text-align       : center;
     color            : #fff;
+    background-color : #333;
     cursor           : pointer;
-    /* 禁止文本选择 */
     user-select      : none;
+    padding          : 0;
+    flex             : none;
+    /* 禁止文本选择 */
+    border           : none;
   }
 
   .toggleBtn:hover {
@@ -106,8 +106,8 @@
 
   #editor-container.collapsed {
     /* 宽屏时，调整为按钮宽度 */
-    width  : 16px !important;
     height : 100% !important;
+    width  : 16px !important;
   }
 
   /* ================== 窄屏布局：垂直排列 ================== */
@@ -118,35 +118,35 @@
 
     #editor-container {
       flex-direction : column;
-      width          : 100% !important; /* 窄屏时，宽度无法更改 */
       height         : 40%;
+      width          : 100% !important; /* 窄屏时，宽度无法更改 */
     }
 
     #editor-container .toggleBtn {
-      width  : 100%;
       height : 16px;
+      width  : 100%;
     }
 
     #editor-container.collapsed {
-      width  : 100% !important;
       height : 16px !important;
+      width  : 100% !important;
     }
     #editor-container.collapsed > .toggleBtn {
-      width  : 100% !important;
       height : 16px !important;
+      width  : 100% !important;
     }
   }
 
   /* ================= 控制台 ===================== */
 
   #console-container {
-    flex             : none;
     display          : flex;
+    flex-direction   : column;
     /* 隐藏溢出 */
     overflow-y       : hidden;
-    flex-direction   : column;
-    /* 容器背景色 */
     background-color : #333;
+    /* 容器背景色 */
+    flex             : none;
     /* 折叠/展开的平滑过渡效果 */
     transition       : height 0.3s ease, width 0.3s ease;
   }
@@ -157,16 +157,16 @@
 
   #console {
     /* 在控制台容器中占据剩余空间 */
-    flex             : 1;
-    /* 分隔线 */
-    border-top       : 1px solid #555;
     overflow-y       : auto;
-    background-color : #1e1e1e;
-    color            : #d4d4d4;
-    padding          : 10px;
+    /* 分隔线 */
     font-family      : monospace;
     font-size        : 12px;
     line-height      : 1.2;
+    color            : #d4d4d4;
+    background-color : #1e1e1e;
+    flex             : 1;
+    border-top       : 1px solid #555;
+    padding          : 10px;
   }
 
   .message-line {
@@ -196,12 +196,12 @@
   }
 
   .button-container {
-    flex     : none;
-    height   : 16px;
     display  : flex;
+    height   : 16px;
     position : absolute;
     top      : 0;
     z-index  : 999999;
+    flex     : none;
   }
 
   .button-container.left {
@@ -213,14 +213,14 @@
   }
 
   .button {
-    display          : flex;
     align-items      : center; /* 复选框和文本，垂直居中 */
-    margin           : 0 0.2em;
+    display          : flex;
+    font-size        : 12px;
     background-color : #5f657b;
+    user-select      : none;
+    margin           : 0 0.2em;
     border-radius    : 4px;
     padding          : 0.1em 0.3em;
-    font-size        : 12px;
-    user-select      : none;
   }
 
   .button:not(:hover) {
@@ -228,13 +228,13 @@
   }
 
   .button > input {
-    margin : 0 0.1em 0 0;
     cursor : pointer;
+    margin : 0 0.1em 0 0;
   }
 
   .button > .text {
-    cursor : pointer;
     color  : #fff;
+    cursor : pointer;
   }
 
   /* ================== 分隔条样式 ==================== */
@@ -246,9 +246,9 @@
   }
 
   :is(.v-splitter,.h-splitter) {
+    flex-shrink      : 0; /* 禁止滚动条收缩 */
     background-color : #444;
     user-select      : none; /* 禁止选中文本 */
-    flex-shrink      : 0; /* 禁止滚动条收缩 */
   }
 
   :is(.v-splitter,.h-splitter):hover {
@@ -266,8 +266,8 @@
   }
 
   .h-splitter {
-    width  : 5px;
     height : 100%;
+    width  : 5px;
     cursor : ew-resize;
   }
 
@@ -277,8 +277,8 @@
 
   /* 拖拽过程中，所有相邻元素无法触发点击事件 */
   .dragging ~ *, :has(~ .dragging) {
-    user-select    : none !important;
     pointer-events : none !important;
+    user-select    : none !important;
     transition     : none !important;
   }
 
@@ -321,17 +321,17 @@
 
     /* 右栏禁止自动伸缩 */
     #right-panel {
-      flex     : none !important;
       position : relative;
+      flex     : none !important;
     }
 
     /* 通过right-panel调节尺寸，console-container继承它的尺寸 */
     #console-container {
-      width    : 100% !important; /* 防止折叠时产生动画，与right-panel不同步 */
+      bottom   : 0;
       height   : 100% !important;
       /* 固定在底部，然后向上增加高度， */
       position : absolute;
-      bottom   : 0;
+      width    : 100% !important; /* 防止折叠时产生动画，与right-panel不同步 */
     }
 
     @media (min-width : 701px) {
@@ -410,8 +410,8 @@
 
   /* ================== 其他 ===================== */
   iframe {
-    width  : 100%;
     height : 100%;
+    width  : 100%;
     border : none;
   }
 
@@ -430,7 +430,7 @@
 
 <div id="content">
   <!-- 编辑器面板 -->
-  <div id="editor-container" class="panel">
+  <div class="panel" id="editor-container">
     <button class="toggleBtn">编辑器</button>
     <div id="editor"></div>
   </div>
@@ -439,23 +439,23 @@
   <div class="right-panel h-splitter"></div>
   <div class="right-panel v-splitter"></div>
   <!-- 右侧面板 -->
-  <div id="right-panel" class="panel">
+  <div class="panel" id="right-panel">
     <!-- 预览面板 -->
-    <div id="preview" class="panel">
+    <div class="panel" id="preview">
       <iframe id="sandboxFrame"></iframe>
     </div>
     <div class="console v-splitter"></div>
     <!-- 控制台面板 -->
-    <div id="console-container" class="panel">
+    <div class="panel" id="console-container">
       <div class="button-container left">
         <!-- 切换语言开关：html/js -->
         <label class="button">
-          <input type="checkbox" name="js-mode" id="js-mode">
+          <input id="js-mode" name="js-mode" type="checkbox">
           <span class="text">JS</span>
         </label>
         <!-- 自动运行开关 -->
         <label class="button">
-          <input type="checkbox" name="auto-run" id="auto-run" checked>
+          <input checked id="auto-run" name="auto-run" type="checkbox">
           <span class="text">自动运行</span>
         </label>
       </div>
@@ -517,21 +517,6 @@
   addResizeListener('.right-panel.h-splitter', '#right-panel', 'h', {deltaSign:-1});
   addResizeListener('.right-panel.v-splitter', '#right-panel', 'v');
 
-  // 向控制台追加内容的函数
-  window.appendToConsole = function(type, args){
-    const $wrapper = $('<div class="message-line"></div>');
-    const message = $(`<div class="message ${type}"></div>`)[0];
-    message.textContent = args.map(arg=>{
-      try {
-        return typeof arg==='object'? JSON.stringify(arg, null, 2): String(arg);
-      } catch{
-        return '[Object]';
-      }
-    }).join(' ');
-    $consoleDiv.append($wrapper.append(message));
-    $consoleDiv.scrollTop($consoleDiv[0].scrollHeight);
-  };
-
   // 初始代码
   let code = `
 <h1>你好，世界！</h1>
@@ -579,8 +564,7 @@ throw  'abc';
     lineHeight:1.5,
     tabSize:2,
     minimap:{
-      autohide:true,
-      maxColumn:80,
+      enabled:false,
     },
     padding:{
       top:10,
@@ -651,6 +635,15 @@ throw  'abc';
     }, 200); // 稍微增加的延迟
   });
 
+  // 向控制台追加内容的函数
+  window.appendToConsole = function(type, args){
+    const $wrapper = $('<div class="message-line"></div>');
+    const message = $(`<div class="message ${type}"></div>`)[0];
+    message.textContent = args.map(arg=>stringify(arg)).join(' ');
+    $consoleDiv.append($wrapper.append(message));
+    $consoleDiv.scrollTop($consoleDiv[0].scrollHeight);
+  };
+
   // 根据语言类型生成不同的页面url
   function genIframeUrl(code){
     if (jsMode.checked){
@@ -661,45 +654,46 @@ throw  'abc';
 
     function genUrl(js, html){
       const jsUrl = URL.createObjectURL(new Blob([js], {type:'text/javascript'}));
+      // language=html
       const iframeHTML = `
         <html lang="zh-CN">
-          <head>
-            <meta charset="UTF-8"/>
-            <style> html:has(> body > html), body:has(> html) { display:contents } </style>
-            <script>
-                const originalConsole = console;
-                window.console = {
-                  log: function(...args) {
-                    parent.appendToConsole('log', args);
-                    originalConsole.log.apply(originalConsole, args);
-                  },
-                  error: function(...args) {
-                    parent.appendToConsole('error', args);
-                    originalConsole.error.apply(originalConsole, args);
-                  },
-                  warn: function(...args) {
-                    parent.appendToConsole('warn', args);
-                    originalConsole.warn.apply(originalConsole, args);
-                  },
-                  info: function(...args) {
-                    parent.appendToConsole('info', args);
-                    originalConsole.info.apply(originalConsole, args);
-                  }
-                };
-                window.onerror = function(message, source, lineno, colno, error) {
-                  parent.appendToConsole('error', ['Uncaught Error:', message]);
-                  originalConsole.error(error);
-                };
-                window.onunhandledrejection = function(event) {
-                  parent.appendToConsole('error', ['Unhandled Promise Rejection:', event.reason]);
-                  originalConsole.warn(event.reason);
-                };
-            <\/script>
-            <script type="module" src="${jsUrl}"><\/script>
-          </head>
-          <body>
-            ${html}
-          </body>
+        <head>
+        <meta charset="UTF-8"/>
+        <style> html:has(> body > html), body:has(> html) { display : contents } </style>
+        <script>
+          const originalConsole = console;
+          window.console = {
+            log:function(...args){
+              parent.appendToConsole('log', args);
+              originalConsole.log.apply(originalConsole, args);
+            },
+            error:function(...args){
+              parent.appendToConsole('error', args);
+              originalConsole.error.apply(originalConsole, args);
+            },
+            warn:function(...args){
+              parent.appendToConsole('warn', args);
+              originalConsole.warn.apply(originalConsole, args);
+            },
+            info:function(...args){
+              parent.appendToConsole('info', args);
+              originalConsole.info.apply(originalConsole, args);
+            },
+          };
+          window.onerror = function(message, source, lineno, colno, error){
+            parent.appendToConsole('error', ['Uncaught Error:', message]);
+            originalConsole.error(error);
+          };
+          window.onunhandledrejection = function(event){
+            parent.appendToConsole('error', ['Unhandled Promise Rejection:', event.reason]);
+            originalConsole.warn(event.reason);
+          };
+        <\/script>
+        <script src="jsUrl" type="module" ${jsUrl}><\/script>
+        </head>
+        <body>
+        ${html}
+        </body>
         </html>
       `;
       return URL.createObjectURL(new Blob([iframeHTML], {
@@ -839,16 +833,18 @@ throw  'abc';
         $(splitter).removeClass('dragging');
       },
     }, {
-      stopOnLeave:false, // todo
+      stopOnLeave:false,
     });
   }
 
   function addDragListener(selector, callbacks = {}, options = {}){
     const $target = $(selector);
-    if (!$target.length) return;
+    if (!$target.length){
+      return;
+    }
 
     const {onStart = ()=>{}, onMove = ()=>{}, onEnd = ()=>{}} = callbacks;
-    const {stopOnLeave = true} = options;
+    const {stopOnLeave = false} = options;
 
     let dragging = false; // 可以表示是否正在拖动
     let startX = 0;
@@ -884,6 +880,106 @@ throw  'abc';
       }
       dragging = false;
       onEnd(event);
+    }
+  }
+
+  // 将任意值转换成字符串表示
+  function stringify(value, options = {}){
+    let {maxLength = 100, memo = null} = options;
+    if (memo===null){
+      memo = new Set();
+      options.memo = memo;
+    }
+
+    if (typeof value==='string'){
+      return value;
+    }
+    return JSON.stringify(value, replacer).replace(/,(?=\S)/g, ', ');
+
+    function replacer(key, val){
+      if (typeof val==='bigint'){ // BigInt
+        return val.toString()+'n';
+      }
+      if (typeof val==='function'){ // function 默认会转换成undefined
+        return '[Function]';
+      }
+      if (typeof val==='symbol'){ // symbol
+        return val.toString();
+      }
+      if (typeof val==='undefined'){ // undefined
+        return 'undefined';
+      }
+      if (typeof val!=='object'){ // 其他JSON支持的原始类型，比如number, string, boolean, null
+        return val;
+      }
+      if (Array.isArray(val)){ // 数组
+        return val;
+      }
+      if (val instanceof Error){ // Error
+        return val.stack;
+      }
+      if (val instanceof globalThis.HTMLElement){ // DOM元素
+        return val.outerHTML.slice(0, maxLength);
+      }
+      if (val instanceof Map){ // Map
+        const entries = Array.from(val.entries());
+        // 将所有key转换成字符串
+        for (let i = 0; i<entries.length; i++){
+          const k = entries[i][0];
+          if (typeof k!=='string'){
+            entries[i][0] = stringify(entries[i][0], options);
+          }
+        }
+        const obj = Object.fromEntries(entries);
+        return 'Map '+stringify(obj, options);
+      }
+      if (val instanceof Set){ // Set
+        const arr = Array.from(val);
+        return 'Set '+stringify(arr, options);
+      }
+
+      // 普通对象直接返回，JSON.stringify会正常序列化
+      if (Object.getPrototypeOf(val)===Object.prototype){
+        return val;
+      }
+
+      // 其他对象（类实例）转成定制字符串
+      return formatInstance(val);
+    }
+
+    function formatInstance(obj){
+      if (memo.has(obj)){
+        return '[!Circular!]';
+      }
+      memo.add(obj);
+
+      let keys = new Set(Object.keys(obj));
+      for (let proto = Object.getPrototypeOf(obj);
+           proto && proto!==Object.prototype;
+           proto = Object.getPrototypeOf(proto)){
+        keys = keys.union(new Set(Object.keys(proto)));
+      }
+
+      let repr = obj.constructor?.name || '[Object]';
+      if (!keys.size){
+        return repr;
+      }
+
+      repr += ' {';
+      for (const k of keys){
+        if (k.startsWith('on') || k.startsWith('_')){ // 忽略事件和私有属性
+          continue;
+        }
+        const valueRepr = stringify(obj[k], options);
+        if (repr.length+valueRepr.length>maxLength){
+          repr += ' ...';
+          break;
+        }
+        repr += (repr.endsWith(',')? ' ': '')+`${k}: ${valueRepr},`;
+      }
+      repr = repr.replace(/,$/, ''); // 将最后一个逗号替换为空格
+      repr += '}';
+      return repr;
     }
   }
 
