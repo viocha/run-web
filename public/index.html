@@ -689,7 +689,7 @@ throw  'abc';
             originalConsole.warn(event.reason);
           };
         <\/script>
-        <script src="jsUrl" type="module" ${jsUrl}><\/script>
+        <script src="${jsUrl}" type="module"><\/script>
         </head>
         <body>
         ${html}
@@ -804,6 +804,7 @@ throw  'abc';
 
     let parentSize;
     let startSize;
+    let style;
 
     addDragListener(splitter, {
       onStart:function(){
