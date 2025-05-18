@@ -538,7 +538,7 @@ function hello(){
 hello();
 
 Promise.reject(123);
-throw  'abc';
+throw 'abc';
 <\/script>`.trim();
 
   let lang = 'html';
@@ -554,6 +554,17 @@ throw  'abc';
     jsMode.checked = true; // 更换布局
   }
 
+  monaco.languages.html.htmlDefaults.setOptions({
+    // 默认启用的语言嵌套支持
+    suggest: true,
+    data: {
+      useDefaultDataProvider: true
+    },
+    // 为 script 标签添加 JS 支持
+    enableScriptSupport: true
+  });
+
+
   // 创建Monaco编辑器实例
   const editor = monaco.editor.create(document.getElementById('editor'), {
     language:lang,
@@ -561,7 +572,9 @@ throw  'abc';
     theme:'vs-dark',
     automaticLayout:true,
     fontSize:12,
-    lineHeight:1.5,
+    fontFamily:'monospace',
+    fontLigatures:true,
+    lineHeight:1.3,
     tabSize:2,
     minimap:{
       enabled:false,
@@ -572,7 +585,7 @@ throw  'abc';
     lineNumbersMinChars:2,
     scrollbar:{
       verticalScrollbarSize:10,
-      horizontalScrollbarSize:7,
+      horizontalScrollbarSize:6,
     },
   });
   // 增强编辑器功能
@@ -632,7 +645,7 @@ throw  'abc';
     clearTimeout(timeout);
     timeout = setTimeout(()=>{
       runCode(editor.getValue());
-    }, 200); // 稍微增加的延迟
+    }, 500);
   });
 
   // 向控制台追加内容的函数
@@ -644,7 +657,7 @@ throw  'abc';
     $consoleDiv.scrollTop($consoleDiv[0].scrollHeight);
   };
 
-  // 根据语言类型生成不同的页面url
+  // 根据语言类型生成不同的页面url 
   function genIframeUrl(code){
     if (jsMode.checked){
       return genUrl(code, '');
@@ -705,93 +718,96 @@ throw  'abc';
   // 增强编辑器功能
   function enhanceEditor(editor){
     // Tab键执行缩进
-    editor.addCommand(monaco.KeyCode.Tab, ()=>{
-      editor.getAction('editor.action.indentLines').run();
+    editor.addCommand(monaco.KeyCode.Tab, () => {
+      const selection = editor.getSelection();
+
+      if (!selection.isEmpty()) {
+        // 有选区时执行缩进
+        editor.getAction('editor.action.indentLines').run();
+      } else {
+        // 没有选区时执行默认 Tab 行为
+        editor.trigger('keyboard', 'type', { text: '\t' });
+      }
     });
     // 折叠增强
-    monaco.languages.registerFoldingRangeProvider('javascript', {
-      provideFoldingRanges:function(model, context, token){
+    0&&monaco.languages.registerFoldingRangeProvider('javascript', {
+      provideFoldingRanges(model) {
         const lines = model.getLineCount();
         const ranges = [];
-        const stack = [];
-        const pairs = {
-          '{':'}',
-          '(':')',
-          '[':']',
-        };
-        const openers = Object.keys(pairs);
-        const closers = Object.values(pairs);
-        const commentStart = /\/\*/;
-        const commentEnd = /\*\//;
-        // 单行注释块
+
+        const pairs = { '{': '}', '(': ')', '[': ']' };
+        const openStack = [];
+
+        const isCommentStart = (text) => /\/\*/.test(text);
+        const isCommentEnd = (text) => /\*\//.test(text);
+
         let inLineCommentBlock = false;
-        let commentStartLine = null;
-        for (let line = 1; line<=lines+1; line++){
-          const text = (line<=lines? model.getLineContent(line): '').trim();
-          // 多行注释
-          if (line<=lines && commentStart.test(text)){
-            stack.push({
-              type:'comment',
-              line,
-            });
+        let lineCommentStart = null;
+
+        for (let line = 1; line <= lines + 1; line++) {
+          const text = line <= lines ? model.getLineContent(line).trim() : '';
+
+          // 多行注释块
+          if (isCommentStart(text)) {
+            openStack.push({ type: 'comment', line });
             continue;
           }
-          if (line<=lines && commentEnd.test(text)){
-            const start = stack.pop();
-            if (start?.type==='comment'){
+          if (isCommentEnd(text)) {
+            const last = openStack.pop();
+            if (last?.type === 'comment') {
               ranges.push({
-                start:start.line,
-                end:line,
-                kind:monaco.languages.FoldingRangeKind.Comment,
+                start: last.line,
+                end: line,
+                kind: monaco.languages.FoldingRangeKind.Comment,
               });
             }
             continue;
           }
-          // 单行注释折叠
-          const isLineComment = text.startsWith('//');
-          if (isLineComment){
-            if (!inLineCommentBlock){
+
+          // 单行注释块
+          if (text.startsWith('//')) {
+            if (!inLineCommentBlock) {
               inLineCommentBlock = true;
-              commentStartLine = line;
+              lineCommentStart = line;
             }
           } else {
-            if (inLineCommentBlock && commentStartLine!==null && line-commentStartLine>1){
+            if (inLineCommentBlock && line - lineCommentStart > 1) {
               ranges.push({
-                start:commentStartLine,
-                end:line-1,
-                kind:monaco.languages.FoldingRangeKind.Comment,
+                start: lineCommentStart,
+                end: line - 1,
+                kind: monaco.languages.FoldingRangeKind.Comment,
               });
             }
             inLineCommentBlock = false;
-            commentStartLine = null;
+            lineCommentStart = null;
           }
-          // 通用符号配对处理
-          for (const ch of openers){
-            if (text.includes(ch)){
-              stack.push({
-                type:'symbol',
-                symbol:ch,
-                line,
-              });
+
+          // 结构块（括号配对）
+          for (const open of Object.keys(pairs)) {
+            if (text.includes(open)) {
+              openStack.push({ type: 'symbol', ch: open, line });
             }
           }
-          for (const ch of closers){
-            const match = Object.entries(pairs).find(([open, close])=>close===ch);
-            if (match && text.includes(ch)){
-              const openerIndex = stack.findLastIndex((s)=>s.type==='symbol' && pairs[s.symbol]===ch);
-              if (openerIndex!== -1){
-                const start = stack.splice(openerIndex, 1)[0];
-                if (line>start.line){
+
+          for (const close of Object.values(pairs)) {
+            if (text.includes(close)) {
+              const openIdx = openStack.findLastIndex(
+                  (s) => s.type === 'symbol' && pairs[s.ch] === close
+              );
+              if (openIdx !== -1) {
+                const start = openStack.splice(openIdx, 1)[0];
+                if (line > start.line) {
                   ranges.push({
-                    start:start.line,
-                    end:line,
-                    kind:monaco.languages.FoldingRangeKind.Region,
+                    start: start.line,
+                    end: line,
+                    kind: monaco.languages.FoldingRangeKind.Region,
                   });
                 }
               }
             }
           }
         }
+
         return ranges;
       },
     });
