@@ -71,6 +71,6 @@
 ## 📁 文件结构
 
 ```
-.
-└── index.html  (包含所有 HTML, CSS, 和 JavaScript)
+public
+  └── index.html  (包含所有 HTML, CSS, 和 JavaScript)
 ```

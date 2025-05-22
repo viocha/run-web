@@ -900,6 +900,7 @@ throw 'abc';
 	}
 
 	// 将任意值转换成字符串表示
+	// 将任意值转成字符串表示
 	function stringify(value, options = {}){
 		let {maxLength = 100, memo = null} = options;
 		if (memo===null){
@@ -910,7 +911,11 @@ throw 'abc';
 		if (typeof value==='string'){
 			return value;
 		}
-		return JSON.stringify(value, replacer).replace(/,(?=\S)/g, ', ');
+		const result = JSON.stringify(value, replacer).replace(/,(?=\S)/g, ', ');
+		if (result.startsWith('"') && result.endsWith('"')){
+			return JSON.parse(result); // 去掉外层引号
+		}
+		return result;
 
 		function replacer(key, val){
 			if (typeof val==='bigint'){ // BigInt
@@ -934,7 +939,7 @@ throw 'abc';
 			if (val instanceof Error){ // Error
 				return val.stack;
 			}
-			if (val instanceof globalThis.HTMLElement){ // DOM元素
+			if (globalThis.HTMLElement && val instanceof globalThis.HTMLElement){ // DOM元素
 				return val.outerHTML.slice(0, maxLength);
 			}
 			if (val instanceof Map){ // Map
