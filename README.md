@@ -1,4 +1,4 @@
-# Monaco 前端编辑器与实时预览
+# run-web 前端编辑器
 
 这是一个功能丰富的在线前端代码编辑器，基于强大的 Monaco Editor 构建。它允许用户实时编写 HTML 和 JavaScript 代码，并在旁边的预览面板中即时查看结果，同时提供一个集成的控制台来捕获和显示日志及错误信息。
 
@@ -48,29 +48,3 @@
 `index.html?code=console.log('Hello%20from%20JS!');&lang=js&no-editor`
 这个链接会以 JS 模式加载，编辑器中预填 `console.log('Hello from JS!');`，并且编辑器面板初始为折叠状态。
 
-## 🔧 技术栈与实现细节
-
-*   **编辑器**: [Monaco Editor](https://microsoft.github.io/monaco-editor/) (通过 CDN 加载)
-*   **DOM 操作与事件处理**: [jQuery](https://jquery.com/) (通过 CDN 以 ESM 方式加载)
-*   **布局**:
-    *   主要使用 Flexbox 实现响应式和动态布局。
-    *   CSS `@media` 查询用于处理宽屏和窄屏的不同布局策略。
-    *   JavaScript 控制面板的折叠/展开动画和尺寸调整。
-*   **预览沙箱**:
-    *   使用 `<iframe>` 作为代码执行的沙箱环境。
-    *   通过 `URL.createObjectURL` 和 `Blob` 动态生成 `iframe` 的 `src`，以加载用户代码。
-*   **控制台**:
-    *   `iframe` 内的 `console` 对象方法被重写，通过 `parent.appendToConsole` 将消息传递到主页面的控制台区域。
-    *   `window.onerror` 和 `window.onunhandledrejection` 用于捕获 `iframe` 内的全局错误和未处理的 Promise 拒绝。
-*   **面板拖拽调整大小**:
-    *   自定义的 `addDragListener` 和 `addResizeListener` 函数实现，通过监听 `mousedown`, `mousemove`, `mouseup` 事件来模拟分隔条的拖拽行为。
-*   **代码组织**:
-    *   所有 HTML, CSS, 和 JavaScript 代码都在一个 `index.html` 文件中。
-    *   JavaScript 使用 ES Modules (`<script type="module">`)。
-
-## 📁 文件结构
-
-```
-public
-  └── index.html  (包含所有 HTML, CSS, 和 JavaScript)
-```

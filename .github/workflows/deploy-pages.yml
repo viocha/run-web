@@ -18,6 +18,6 @@ jobs:
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: ./public  # 指定要上传的目录
+          path: .  # 指定要上传的目录
 
       - uses: actions/deploy-pages@v4
